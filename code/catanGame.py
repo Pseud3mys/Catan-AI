@@ -49,60 +49,41 @@ class catanGame():
 
     #Function to initialize players + build initial settlements for players
     def build_initial_settlements(self):
-        #Initialize new players with names and colors
         playerColors = ['black', 'darkslateblue', 'magenta4', 'orange1']
-        for i in range(self.numPlayers -1):
-            playerNameInput = input("Enter Player {} name: ".format(i+1))
-            newPlayer = player(playerNameInput, playerColors[i])
-            self.playerQueue.put(newPlayer)
 
-        test_AI_player = heuristicAIPlayer('Random-Greedy-AI', playerColors[i+1]) #Add the AI Player last
-        test_AI_player.updateAI()
-        self.playerQueue.put(test_AI_player)
+        # Création de 4 IA automatisées
+        for i in range(self.numPlayers):
+            newAI = heuristicAIPlayer(f'Bot_IA_{i + 1}', playerColors[i])
+            newAI.updateAI()
+            self.playerQueue.put(newAI)
 
         playerList = list(self.playerQueue.queue)
 
-        self.boardView.displayGameScreen() #display the initial gameScreen
+        self.boardView.displayGameScreen()  # Affiche l'écran initial
         print("Displaying Initial GAMESCREEN!")
 
-        #Build Settlements and roads of each player forwards
-        for player_i in playerList: 
-            if(player_i.isAI):
-                player_i.initial_setup(self.board)
-            
-            else:
-                self.build(player_i, 'SETTLE')
-                self.boardView.displayGameScreen()
-                
-                self.build(player_i, 'ROAD')
-                self.boardView.displayGameScreen()
-        
-        #Build Settlements and roads of each player reverse
+        # Initialisation (Aller) - Chaque IA place sa première colonie/route
+        for player_i in playerList:
+            player_i.initial_setup(self.board)
+            self.boardView.displayGameScreen()
+            pygame.time.delay(500)  # Pause de 0.5s pour voir le coup
+
+        # Initialisation (Retour)
         playerList.reverse()
-        for player_i in playerList: 
-            if(player_i.isAI):
-                player_i.initial_setup(self.board)
-                self.boardView.displayGameScreen()
+        for player_i in playerList:
+            player_i.initial_setup(self.board)
+            self.boardView.displayGameScreen()
+            pygame.time.delay(500)
 
-            else:
-                self.build(player_i, 'SETTLE')
-                self.boardView.displayGameScreen()
-
-                self.build(player_i, 'ROAD')
-                self.boardView.displayGameScreen()
-
-            #Initial resource generation
-            #check each adjacent hex to latest settlement
+            # Génération des ressources de départ
             for adjacentHex in self.board.boardGraph[player_i.buildGraph['SETTLEMENTS'][-1]].adjacentHexList:
                 resourceGenerated = self.board.hexTileDict[adjacentHex].resource.type
-                if(resourceGenerated != 'DESERT'):
+                if (resourceGenerated != 'DESERT'):
                     player_i.resources[resourceGenerated] += 1
                     print("{} collects 1 {} from Settlement".format(player_i.name, resourceGenerated))
 
         self.gameSetup = False
-
         return
-
 
     #Generic function to handle all building in the game - interface with gameView
     def build(self, player, build_flag):
@@ -255,7 +236,6 @@ class catanGame():
         #self.board.displayBoard() #Display updated board
 
         while (self.gameOver == False):
-
             #Loop for each player's turn -> iterate through the player queue
             for currPlayer in self.playerQueue.queue:
 
@@ -274,6 +254,15 @@ class catanGame():
                     #TO-DO: Add logic for AI Player to move
                     #TO-DO: Add option of AI Player playing a dev card prior to dice roll
                     if(currPlayer.isAI):
+                        # --- AJOUT POUR LA SIMULATION VISUELLE ---
+                        # 1. Empêcher Pygame de freeze et permettre de fermer la fenêtre
+                        for e in pygame.event.get():
+                            if e.type == pygame.QUIT:
+                                sys.exit(0)
+
+                        # 2. Mettre un petit délai pour qu'on puisse regarder la partie
+                        pygame.time.delay(1000)
+
                         #Roll Dice
                         diceNum = self.rollDice()
                         diceRolled = True
